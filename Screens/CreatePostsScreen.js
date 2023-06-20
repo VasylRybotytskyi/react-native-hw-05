@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Text,
   View,
@@ -8,21 +8,30 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { AntDesign, EvilIcons, Entypo, Feather } from "@expo/vector-icons";
+import { RNCamera } from "react-native-camera";
 
-const windowWidth = Dimensions.get("window").width; // Для ширини екрану
-const windowHeight = Dimensions.get("window").height; // Для висоти екрану
 const CreatePostsScreen = () => {
+  const [cameraActive, setCameraActive] = useState(false);
+
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <View style={styles.contentImage}>
-          <Entypo
-            style={styles.contentImageCamera}
-            name="camera"
-            size={24}
-            color="rgba(189, 189, 189, 1)"
+        {cameraActive ? (
+          <RNCamera
+            style={styles.camera}
+            type={RNCamera.Constants.Type.back}
+            captureAudio={false}
           />
-        </View>
+        ) : (
+          <View style={styles.contentImage}>
+            <Entypo
+              style={styles.contentImageCamera}
+              name="camera"
+              size={24}
+              color="rgba(189, 189, 189, 1)"
+            />
+          </View>
+        )}
         <Text style={styles.text}>Завантажте фото</Text>
         <View style={styles.formContainer}>
           <TextInput style={styles.inputName} placeholder="Назва..." />
@@ -132,5 +141,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     width: 70,
     height: 40,
+  },
+  camera: {
+    flex: 1,
   },
 });

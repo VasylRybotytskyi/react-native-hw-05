@@ -1,11 +1,11 @@
 import React from "react";
 import { Text, View, StyleSheet, Dimensions } from "react-native";
+// import MapScreen from "./MapScreen";
 
 const windowWidth = Dimensions.get("window").width; // Для ширини екрану
-const windowHeight = Dimensions.get("window").height; // Для висоти екрану
 
 export const PostsScreen = () => {
-  return <View style={styles.container}></View>;
+  return <View style={styles.container}>{/* <MapScreen /> */}</View>;
 };
 
 const styles = StyleSheet.create({
