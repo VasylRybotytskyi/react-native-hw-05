@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   Text,
   View,
@@ -8,41 +8,78 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { AntDesign, EvilIcons, Entypo, Feather } from "@expo/vector-icons";
-import { RNCamera } from "react-native-camera";
+import { Camera } from "expo-camera";
 
 const CreatePostsScreen = () => {
   const [cameraActive, setCameraActive] = useState(false);
+  const [photoData, setPhotoData] = useState(null);
+  const cameraRef = useRef(null);
+  const inputNameRef = useRef(null);
+  const inputLocationRef = useRef(null);
+
+  const takePicture = async () => {
+    if (cameraRef.current) {
+      const photo = await cameraRef.current.takePictureAsync();
+      console.log("Photo captured:", photo);
+      setPhotoData(photo);
+    }
+  };
+
+  const handleCameraIconPress = () => {
+    setCameraActive(true);
+    takePicture();
+  };
+
+  const handlePublishButtonPress = () => {
+    const photo = photoData ? photoData.uri : null;
+    const name = inputNameRef.current ? inputNameRef.current.value : "";
+    const location = inputLocationRef.current
+      ? inputLocationRef.current.value
+      : "";
+    console.log("Publish:", { photo, name, location });
+  };
 
   return (
     <View style={styles.container}>
       <View style={styles.content}>
         {cameraActive ? (
-          <RNCamera
+          <Camera
+            ref={cameraRef}
             style={styles.camera}
-            type={RNCamera.Constants.Type.back}
-            captureAudio={false}
+            type={Camera.Constants.Type.back}
           />
         ) : (
           <View style={styles.contentImage}>
-            <Entypo
+            <TouchableOpacity
               style={styles.contentImageCamera}
-              name="camera"
-              size={24}
-              color="rgba(189, 189, 189, 1)"
-            />
+              onPress={handleCameraIconPress}
+            >
+              <Entypo name="camera" size={24} color="rgba(189, 189, 189, 1)" />
+            </TouchableOpacity>
           </View>
         )}
         <Text style={styles.text}>Завантажте фото</Text>
         <View style={styles.formContainer}>
-          <TextInput style={styles.inputName} placeholder="Назва..." />
-          <TextInput style={styles.input} placeholder="Місцевість..." />
+          <TextInput
+            style={styles.inputName}
+            placeholder="Назва..."
+            ref={inputNameRef}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Місцевість..."
+            ref={inputLocationRef}
+          />
           <Feather
             style={styles.iconMap}
             name="map-pin"
             size={18}
             color="rgba(232, 232, 232, 1)"
           />
-          <TouchableOpacity style={styles.buttonContainer} onPress={() => {}}>
+          <TouchableOpacity
+            style={styles.buttonContainer}
+            onPress={handlePublishButtonPress}
+          >
             <Text style={styles.button}>Опублікувати</Text>
           </TouchableOpacity>
         </View>
