@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Text,
   View,
@@ -9,19 +9,25 @@ import {
 } from "react-native";
 import { AntDesign, EvilIcons, Entypo, Feather } from "@expo/vector-icons";
 import { Camera } from "expo-camera";
+import * as Permissions from "expo-permissions";
 
 const CreatePostsScreen = () => {
   const [cameraActive, setCameraActive] = useState(false);
-  const [photoData, setPhotoData] = useState(null);
+  const [hasCameraPermission, setHasCameraPermission] = useState(null);
   const cameraRef = useRef(null);
-  const inputNameRef = useRef(null);
-  const inputLocationRef = useRef(null);
+
+  useEffect(() => {
+    (async () => {
+      const { status } = await Permissions.askAsync(Permissions.CAMERA);
+      setHasCameraPermission(status === "granted");
+    })();
+  }, []);
 
   const takePicture = async () => {
     if (cameraRef.current) {
-      const photo = await cameraRef.current.takePictureAsync();
-      console.log("Photo captured:", photo);
-      setPhotoData(photo);
+      const options = { quality: 0.5, base64: true };
+      const data = await cameraRef.current.takePictureAsync(options);
+      console.log("Photo captured:", data);
     }
   };
 
@@ -30,56 +36,44 @@ const CreatePostsScreen = () => {
     takePicture();
   };
 
-  const handlePublishButtonPress = () => {
-    const photo = photoData ? photoData.uri : null;
-    const name = inputNameRef.current ? inputNameRef.current.value : "";
-    const location = inputLocationRef.current
-      ? inputLocationRef.current.value
-      : "";
-    console.log("Publish:", { photo, name, location });
-  };
-
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        {cameraActive ? (
-          <Camera
-            ref={cameraRef}
-            style={styles.camera}
-            type={Camera.Constants.Type.back}
-          />
+        {hasCameraPermission ? (
+          cameraActive ? (
+            <Camera
+              ref={cameraRef}
+              style={styles.camera}
+              type={Camera.Constants.Type.back}
+            />
+          ) : (
+            <View style={styles.contentImage}>
+              <TouchableOpacity
+                style={styles.contentImageCamera}
+                onPress={handleCameraIconPress}
+              >
+                <Entypo
+                  name="camera"
+                  size={24}
+                  color="rgba(189, 189, 189, 1)"
+                />
+              </TouchableOpacity>
+            </View>
+          )
         ) : (
-          <View style={styles.contentImage}>
-            <TouchableOpacity
-              style={styles.contentImageCamera}
-              onPress={handleCameraIconPress}
-            >
-              <Entypo name="camera" size={24} color="rgba(189, 189, 189, 1)" />
-            </TouchableOpacity>
-          </View>
+          <Text>No access to camera</Text>
         )}
         <Text style={styles.text}>Завантажте фото</Text>
         <View style={styles.formContainer}>
-          <TextInput
-            style={styles.inputName}
-            placeholder="Назва..."
-            ref={inputNameRef}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Місцевість..."
-            ref={inputLocationRef}
-          />
+          <TextInput style={styles.inputName} placeholder="Назва..." />
+          <TextInput style={styles.input} placeholder="Місцевість..." />
           <Feather
             style={styles.iconMap}
             name="map-pin"
             size={18}
             color="rgba(232, 232, 232, 1)"
           />
-          <TouchableOpacity
-            style={styles.buttonContainer}
-            onPress={handlePublishButtonPress}
-          >
+          <TouchableOpacity style={styles.buttonContainer} onPress={() => {}}>
             <Text style={styles.button}>Опублікувати</Text>
           </TouchableOpacity>
         </View>
