@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Text,
   View,
@@ -6,84 +6,230 @@ import {
   Dimensions,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
 } from "react-native";
-import { AntDesign, EvilIcons, Entypo, Feather } from "@expo/vector-icons";
+import { EvilIcons, Entypo, Feather } from "@expo/vector-icons";
+import { useNavigation, useIsFocused } from "@react-navigation/native";
 import { Camera } from "expo-camera";
-import * as Permissions from "expo-permissions";
+import * as MediaLibrary from "expo-media-library";
+import * as Location from "expo-location";
+import * as DocumentPicker from "expo-document-picker";
 
 const CreatePostsScreen = () => {
-  const [cameraActive, setCameraActive] = useState(false);
-  const [hasCameraPermission, setHasCameraPermission] = useState(null);
-  const cameraRef = useRef(null);
+  const navigation = useNavigation();
+  const isFocused = useIsFocused();
+
+  const [hasPermission, setHasPermission] = useState(null);
+  const [cameraRef, setCameraRef] = useState(null);
+
+  const [postImg, setPostImg] = useState("");
+  const [postName, setPostName] = useState("");
+  const [postAddress, setPostAddress] = useState("");
+  const [postLocation, setPostLocation] = useState(null);
+
+  const [isShowKeyboard, setIsShowKeyboard] = useState(false);
+  const [currentFocused, setCurrentFocused] = useState("");
 
   useEffect(() => {
+    setPostImg("");
+    setPostLocation(null);
+
     (async () => {
-      const { status } = await Permissions.askAsync(Permissions.CAMERA);
-      setHasCameraPermission(status === "granted");
+      const { status } = await Camera.requestCameraPermissionsAsync();
+      await MediaLibrary.requestPermissionsAsync();
+
+      setHasPermission(status === "granted");
+    })();
+
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        console.log("Permission to access location was denied");
+      }
     })();
   }, []);
 
-  const takePicture = async () => {
-    if (cameraRef.current) {
-      const options = { quality: 0.5, base64: true };
-      const data = await cameraRef.current.takePictureAsync(options);
-      console.log("Photo captured:", data);
-    }
+  const addImageLocation = async () => {
+    const location = await Location.getCurrentPositionAsync({});
+    const coords = {
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude,
+    };
+
+    const [address] = await Location.reverseGeocodeAsync({
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude,
+    });
+
+    setPostAddress(address.city);
+    setPostLocation(coords);
   };
 
-  const handleCameraIconPress = () => {
-    setCameraActive(true);
-    takePicture();
+  const clearForm = () => {
+    setPostImg("");
+    setPostName("");
+    setPostAddress("");
+    setPostLocation(null);
   };
+
+  const onSubmitPost = () => {
+    if (!postImg || !postName.trim() || !postLocation)
+      return console.warn("Будь ласка завантажте фото та заповніть поля");
+
+    console.log({ postImg, postName, postAddress, postLocation });
+
+    handleKeyboardHide();
+    navigation.navigate("DefaultPosts", {
+      postImg,
+      postName: postName.trim(),
+      postAddress: postAddress.trim(),
+      postLocation,
+    });
+    clearForm();
+  };
+
+  const onLoadPostImg = async () => {
+    if (cameraRef) {
+      try {
+        const { uri } = await cameraRef.takePictureAsync();
+        await MediaLibrary.createAssetAsync(uri);
+        setPostImg(uri);
+      } catch (error) {
+        console.log("Error > ", error.message);
+      }
+    }
+
+    // if (!cameraRef && postImg) {
+    //   try {
+    //     const avatarImg = await DocumentPicker.getDocumentAsync({
+    //       type: 'image/*',
+    //     });
+
+    //     if (avatarImg.type === 'cancel') return setPostImg('');
+
+    //     setPostImg(avatarImg);
+    //   } catch (error) {
+    //     console.log('Error > ', error.message);
+    //   }
+    // }
+    addImageLocation();
+  };
+
+  const handleFocus = (currentFocusInput = "") => {
+    setIsShowKeyboard(true);
+    setCurrentFocused(currentFocusInput);
+  };
+
+  const handleKeyboardHide = () => {
+    setIsShowKeyboard(false);
+    setCurrentFocused("");
+    Keyboard.dismiss();
+  };
+
+  const handleGoBack = () => {
+    clearForm();
+    navigation.goBack();
+  };
+
+  if (hasPermission === null) {
+    return <View />;
+  }
+  if (hasPermission === false) {
+    return <Text> No access to camera</Text>;
+  }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        {hasCameraPermission ? (
-          cameraActive ? (
-            <Camera
-              ref={cameraRef}
-              style={styles.camera}
-              type={Camera.Constants.Type.back}
+    <TouchableWithoutFeedback onPress={handleKeyboardHide}>
+      <View
+        style={{
+          ...styles.container,
+          justifyContent: isShowKeyboard ? "center" : "flex-start",
+        }}
+      >
+        <View style={styles.content}>
+          <View style={styles.contentImage}>
+            {postImg ? (
+              <>
+                <Image style={styles.bgImage} source={{ uri: postImg }} />
+                <TouchableOpacity
+                  style={{
+                    ...styles.loadBtn,
+                    backgroundColor: "rgba(255, 255, 255, 0.3)",
+                  }}
+                  onPress={onLoadPostImg}
+                >
+                  {/* <SvgLoadPost style={styles.loadBtnContent} fillColor={'#ffffff'} /> */}
+                </TouchableOpacity>
+              </>
+            ) : (
+              isFocused && (
+                <Camera
+                  style={styles.camera}
+                  ratio="1:1"
+                  zoom={0}
+                  type={Camera.Constants.Type.back}
+                  ref={setCameraRef}
+                >
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: "#ffffff",
+                      borderRadius: 100,
+                    }}
+                    onPress={onLoadPostImg}
+                  >
+                    <Entypo
+                      style={styles.contentImageCamera}
+                      name="camera"
+                      size={24}
+                      color="rgba(189, 189, 189, 1)"
+                    />
+                    {/* <SvgLoadPost
+                      style={styles.loadBtnContent}
+                      fillColor={postImg ? "#ffffff" : "#bdbdbd"}
+                    /> */}
+                  </TouchableOpacity>
+                </Camera>
+              )
+            )}
+          </View>
+          <Text style={styles.text}>Завантажте фото</Text>
+          <View style={styles.formContainer}>
+            <TextInput
+              style={styles.inputName}
+              placeholder="Назва..."
+              value={postName}
+              onChangeText={setPostName}
             />
-          ) : (
-            <View style={styles.contentImage}>
-              <TouchableOpacity
-                style={styles.contentImageCamera}
-                onPress={handleCameraIconPress}
-              >
-                <Entypo
-                  name="camera"
-                  size={24}
-                  color="rgba(189, 189, 189, 1)"
-                />
-              </TouchableOpacity>
-            </View>
-          )
-        ) : (
-          <Text>No access to camera</Text>
-        )}
-        <Text style={styles.text}>Завантажте фото</Text>
-        <View style={styles.formContainer}>
-          <TextInput style={styles.inputName} placeholder="Назва..." />
-          <TextInput style={styles.input} placeholder="Місцевість..." />
-          <Feather
-            style={styles.iconMap}
-            name="map-pin"
-            size={18}
-            color="rgba(232, 232, 232, 1)"
-          />
-          <TouchableOpacity style={styles.buttonContainer} onPress={() => {}}>
-            <Text style={styles.button}>Опублікувати</Text>
-          </TouchableOpacity>
+            <TextInput
+              style={styles.input}
+              placeholder="Місцевість..."
+              value={postAddress}
+              onChangeText={setPostAddress}
+            />
+            <Feather
+              style={styles.iconMap}
+              name="map-pin"
+              size={18}
+              color="rgba(232, 232, 232, 1)"
+            />
+            <TouchableOpacity
+              style={styles.buttonContainer}
+              onPress={onSubmitPost}
+            >
+              <Text style={styles.button}>Опублікувати</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        <View style={styles.iconsContainer}>
+          <View style={styles.buttonAdd}>
+            <EvilIcons name="trash" size={24} color="rgba(189, 189, 189, 1)" />
+          </View>
         </View>
       </View>
-      <View style={styles.iconsContainer}>
-        <View style={styles.buttonAdd}>
-          <EvilIcons name="trash" size={24} color="rgba(189, 189, 189, 1)" />
-        </View>
-      </View>
-    </View>
+    </TouchableWithoutFeedback>
   );
 };
 
@@ -173,7 +319,24 @@ const styles = StyleSheet.create({
     width: 70,
     height: 40,
   },
+  loadBtn: {
+    alignItems: "center",
+    alignContent: "center",
+
+    width: 60,
+    height: 60,
+
+    padding: 18,
+
+    color: "#bdbdbd",
+    backgroundColor: "#ffffff",
+    borderRadius: 50,
+  },
   camera: {
-    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+
+    height: "100%",
+    width: "100%",
   },
 });
