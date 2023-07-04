@@ -95,26 +95,13 @@ const CreatePostsScreen = () => {
     if (cameraRef) {
       try {
         const { uri } = await cameraRef.takePictureAsync();
+
         await MediaLibrary.createAssetAsync(uri);
         setPostImg(uri);
       } catch (error) {
         console.log("Error > ", error.message);
       }
     }
-
-    // if (!cameraRef && postImg) {
-    //   try {
-    //     const avatarImg = await DocumentPicker.getDocumentAsync({
-    //       type: 'image/*',
-    //     });
-
-    //     if (avatarImg.type === 'cancel') return setPostImg('');
-
-    //     setPostImg(avatarImg);
-    //   } catch (error) {
-    //     console.log('Error > ', error.message);
-    //   }
-    // }
     addImageLocation();
   };
 
@@ -152,8 +139,12 @@ const CreatePostsScreen = () => {
         <View style={styles.content}>
           <View style={styles.contentImage}>
             {postImg ? (
-              <>
-                <Image style={styles.bgImage} source={{ uri: postImg }} />
+              <View
+                style={{
+                  ...styles.bgImage,
+                  backgroundImage: `url(${postImg})`,
+                }}
+              >
                 <TouchableOpacity
                   style={{
                     ...styles.loadBtn,
@@ -163,7 +154,7 @@ const CreatePostsScreen = () => {
                 >
                   {/* <SvgLoadPost style={styles.loadBtnContent} fillColor={'#ffffff'} /> */}
                 </TouchableOpacity>
-              </>
+              </View>
             ) : (
               isFocused && (
                 <Camera
@@ -187,9 +178,9 @@ const CreatePostsScreen = () => {
                       color="rgba(189, 189, 189, 1)"
                     />
                     {/* <SvgLoadPost
-                      style={styles.loadBtnContent}
-                      fillColor={postImg ? "#ffffff" : "#bdbdbd"}
-                    /> */}
+            style={styles.loadBtnContent}
+            fillColor={postImg ? "#ffffff" : "#bdbdbd"}
+          /> */}
                   </TouchableOpacity>
                 </Camera>
               )
