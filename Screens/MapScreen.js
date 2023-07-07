@@ -1,65 +1,56 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useIsFocused } from "@react-navigation/native";
+import { useEffect, useState } from "react";
+import { Dimensions } from "react-native";
+import { StyleSheet, Text } from "react-native";
+import { View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 
-// icon
-import { AntDesign } from "@expo/vector-icons";
+const MapScreen = ({ route, navigation }) => {
+  const isFocused = useIsFocused();
 
-const MapScreen = ({ navigation, route: { params } }) => {
-  if (!params.coordinate) {
-    return (
-      <View style={{ flex: 1 }}>
-        <Text style={{ textAlign: "center", fontSize: 24, marginTop: "50%" }}>
-          Відсутні координати карти
-        </Text>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => navigation.goBack()}
-        >
-          <AntDesign name="arrowleft" size={35} color="#FF6C00" />
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  const [location, setLocation] = useState({});
+
+  useEffect(() => {
+    if (isFocused) {
+      navigation?.getParent("home")?.setOptions({
+        tabBarStyle: { display: "none" },
+        headerShown: false,
+      });
+    }
+
+    if (route.params) setLocation(route.params.postLocation);
+  }, []);
+
   return (
     <View style={styles.container}>
       <MapView
-        style={{ flex: 1 }}
+        style={styles.map}
         initialRegion={{
-          latitude: params.coordinate.coords.latitude,
-          longitude: params.coordinate.coords.longitude,
-          latitudeDelta: 0.001,
-          longitudeDelta: 0.01,
+          // ...location,
+
+          latitude: 48.383022,
+          longitude: 31.1828699,
+          latitudeDelta: 0.006,
+          longitudeDelta: 0.006,
         }}
       >
-        <Marker
-          title={params.nameLocation}
-          description={params.title}
-          coordinate={{
-            latitude: params.coordinate.coords.latitude,
-            longitude: params.coordinate.coords.longitude,
-          }}
-        />
+        {location && <Marker title="It`s here" coordinate={location} />}
       </MapView>
-      <TouchableOpacity
-        style={styles.backBtn}
-        onPress={() => navigation.goBack()}
-      >
-        <AntDesign name="arrowleft" size={35} color="#FF6C00" />
-      </TouchableOpacity>
     </View>
   );
 };
+
+export default MapScreen;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  backBtn: {
-    position: "absolute",
-    left: 16,
-    top: 25,
+  map: {
+    width: Dimensions.get("window").width,
+    height: Dimensions.get("window").height,
   },
 });
-
-export default MapScreen;

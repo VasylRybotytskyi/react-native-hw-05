@@ -1,22 +1,31 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigation, useIsFocused } from "@react-navigation/native";
+
+import { Camera } from "expo-camera";
+import * as MediaLibrary from "expo-media-library";
+
+import * as Location from "expo-location";
+
+import * as DocumentPicker from "expo-document-picker";
 import {
-  Text,
-  View,
-  StyleSheet,
   Dimensions,
-  TextInput,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
   Image,
   Keyboard,
   KeyboardAvoidingView,
+  StyleSheet,
 } from "react-native";
-import { EvilIcons, Entypo, Feather } from "@expo/vector-icons";
-import { useNavigation, useIsFocused } from "@react-navigation/native";
-import { Camera } from "expo-camera";
-import * as MediaLibrary from "expo-media-library";
-import * as Location from "expo-location";
-import * as DocumentPicker from "expo-document-picker";
+
+import {
+  TouchableWithoutFeedback,
+  TextInput,
+  TouchableOpacity,
+  Text,
+  View,
+} from "react-native";
+
+import SvgTrash from "../assets/svg/SvgTrash";
+import SvgLocation from "../assets/svg/SvgLocation";
+import SvgLoadPost from "../assets/svg/SvgLoadPost";
 
 const CreatePostsScreen = () => {
   const navigation = useNavigation();
@@ -95,13 +104,26 @@ const CreatePostsScreen = () => {
     if (cameraRef) {
       try {
         const { uri } = await cameraRef.takePictureAsync();
-
         await MediaLibrary.createAssetAsync(uri);
         setPostImg(uri);
       } catch (error) {
         console.log("Error > ", error.message);
       }
     }
+
+    // if (!cameraRef && postImg) {
+    //   try {
+    //     const avatarImg = await DocumentPicker.getDocumentAsync({
+    //       type: 'image/*',
+    //     });
+
+    //     if (avatarImg.type === 'cancel') return setPostImg('');
+
+    //     setPostImg(avatarImg);
+    //   } catch (error) {
+    //     console.log('Error > ', error.message);
+    //   }
+    // }
     addImageLocation();
   };
 
@@ -109,13 +131,11 @@ const CreatePostsScreen = () => {
     setIsShowKeyboard(true);
     setCurrentFocused(currentFocusInput);
   };
-
   const handleKeyboardHide = () => {
     setIsShowKeyboard(false);
     setCurrentFocused("");
     Keyboard.dismiss();
   };
-
   const handleGoBack = () => {
     clearForm();
     navigation.goBack();
@@ -127,7 +147,6 @@ const CreatePostsScreen = () => {
   if (hasPermission === false) {
     return <Text> No access to camera</Text>;
   }
-
   return (
     <TouchableWithoutFeedback onPress={handleKeyboardHide}>
       <View
@@ -136,15 +155,11 @@ const CreatePostsScreen = () => {
           justifyContent: isShowKeyboard ? "center" : "flex-start",
         }}
       >
-        <View style={styles.content}>
-          <View style={styles.contentImage}>
+        <View style={styles.loadWrapper}>
+          <View style={styles.postImgWrapper}>
             {postImg ? (
-              <View
-                style={{
-                  ...styles.bgImage,
-                  backgroundImage: `url(${postImg})`,
-                }}
-              >
+              <>
+                <Image style={styles.bgImage} source={{ uri: postImg }} />
                 <TouchableOpacity
                   style={{
                     ...styles.loadBtn,
@@ -152,9 +167,12 @@ const CreatePostsScreen = () => {
                   }}
                   onPress={onLoadPostImg}
                 >
-                  {/* <SvgLoadPost style={styles.loadBtnContent} fillColor={'#ffffff'} /> */}
+                  <SvgLoadPost
+                    style={styles.loadBtnContent}
+                    fillColor={"#ffffff"}
+                  />
                 </TouchableOpacity>
-              </View>
+              </>
             ) : (
               isFocused && (
                 <Camera
@@ -166,59 +184,92 @@ const CreatePostsScreen = () => {
                 >
                   <TouchableOpacity
                     style={{
-                      backgroundColor: "#ffffff",
-                      borderRadius: 100,
+                      ...styles.loadBtn,
+                      backgroundColor: postImg
+                        ? "rgba(255, 255, 255, 0.3)"
+                        : "#ffffff",
                     }}
                     onPress={onLoadPostImg}
                   >
-                    <Entypo
-                      style={styles.contentImageCamera}
-                      name="camera"
-                      size={24}
-                      color="rgba(189, 189, 189, 1)"
+                    <SvgLoadPost
+                      style={styles.loadBtnContent}
+                      fillColor={postImg ? "#ffffff" : "#bdbdbd"}
                     />
-                    {/* <SvgLoadPost
-            style={styles.loadBtnContent}
-            fillColor={postImg ? "#ffffff" : "#bdbdbd"}
-          /> */}
                   </TouchableOpacity>
                 </Camera>
               )
             )}
           </View>
-          <Text style={styles.text}>Завантажте фото</Text>
-          <View style={styles.formContainer}>
+          <Text style={styles.loadWrapperText}>
+            {postImg ? "Редагувати фото" : "Завантажте фото"}
+          </Text>
+        </View>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.keyboardView}
+        >
+          <View>
             <TextInput
-              style={styles.inputName}
+              style={{
+                ...styles.input,
+                borderColor:
+                  currentFocused === "postName" ? "#ff6c00" : "#e8e8e8",
+              }}
+              placeholderTextColor="#bdbdbd"
               placeholder="Назва..."
+              autoComplete="off"
+              autoCapitalize="none"
               value={postName}
               onChangeText={setPostName}
+              onFocus={() => handleFocus("postName")}
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Місцевість..."
-              value={postAddress}
-              onChangeText={setPostAddress}
-            />
-            <Feather
-              style={styles.iconMap}
-              name="map-pin"
-              size={18}
-              color="rgba(232, 232, 232, 1)"
-            />
-            <TouchableOpacity
-              style={styles.buttonContainer}
-              onPress={onSubmitPost}
+            <View
+              style={{
+                ...styles.locationInputWrapper,
+                borderColor:
+                  currentFocused === "location" ? "#ff6c00" : "#e8e8e8",
+              }}
             >
-              <Text style={styles.button}>Опублікувати</Text>
-            </TouchableOpacity>
+              <SvgLocation style={styles.btnLoaction} />
+              <TextInput
+                style={styles.inputLocation}
+                placeholderTextColor="#bdbdbd"
+                placeholder="Місцевість..."
+                autoComplete="off"
+                autoCapitalize="none"
+                value={postAddress}
+                onChangeText={setPostAddress}
+                onFocus={() => handleFocus("location")}
+              />
+            </View>
           </View>
-        </View>
-        <View style={styles.iconsContainer}>
-          <View style={styles.buttonAdd}>
-            <EvilIcons name="trash" size={24} color="rgba(189, 189, 189, 1)" />
-          </View>
-        </View>
+        </KeyboardAvoidingView>
+        <TouchableOpacity
+          style={{
+            ...styles.btn,
+            backgroundColor:
+              !postImg || !postName.trim() || !postLocation
+                ? "#f6f6f6"
+                : "#ff6c00",
+          }}
+          onPress={onSubmitPost}
+        >
+          <Text
+            style={{
+              ...styles.btnText,
+              color:
+                !postImg || !postName.trim() || !postLocation
+                  ? "#bdbdbd"
+                  : "#ffffff",
+            }}
+          >
+            Опубліковати
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.btnTrash} onPress={handleGoBack}>
+          <SvgTrash stroke={"#dbdbdb"} />
+        </TouchableOpacity>
       </View>
     </TouchableWithoutFeedback>
   );
@@ -229,86 +280,55 @@ export default CreatePostsScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "space-between",
-    backgroundColor: "#FFFFFF", // Задній фон білий
-  },
-  content: {
+
     paddingHorizontal: 16,
     paddingVertical: 32,
+
+    backgroundColor: "#fff",
+
+    resizeMode: "cover",
+    width: Dimensions.get("window").width,
+    height: Dimensions.get("window").height,
   },
-  contentImage: {
-    backgroundColor: "#F6F6F6",
-    height: 240,
-    borderWidth: 1,
-    borderColor: "rgba(232, 232, 232, 1)",
-    borderRadius: 8,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 8,
+
+  loadWrapper: {
+    marginBottom: 32,
   },
-  contentImageCamera: {
-    padding: 20,
-    backgroundColor: "rgba(255, 255, 255, 1)",
-    borderRadius: 100,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  buttonContainer: {
-    // backgroundColor: "#F6F6F6",
-  },
-  button: {
-    backgroundColor: "#F6F6F6",
-    color: "#BDBDBD",
-    borderRadius: 100,
-    paddingVertical: 16,
-    textAlign: "center",
-  },
-  formContainer: {
-    gap: 32,
-  },
-  input: {
+  postImgWrapper: {
     position: "relative",
-    borderBottomWidth: 1,
-    borderColor: "rgba(232, 232, 232, 1)",
-    paddingVertical: 15,
-    fontWeight: "400",
-    fontSize: 16,
-    lineHeight: 19,
-    paddingLeft: 32,
-  },
-  inputName: {
-    borderBottomWidth: 1,
-    borderColor: "rgba(232, 232, 232, 1)",
-    paddingVertical: 15,
-    fontWeight: "400",
-    fontSize: 16,
-    lineHeight: 19,
-  },
-  text: {
-    fontWeight: "400",
-    fontSize: 16,
-    lineHeight: 19,
-    color: "#BDBDBD",
-    marginBottom: 48,
-  },
-  iconMap: {
-    position: "absolute",
-    top: 110,
-  },
-  iconsContainer: {
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 93,
-    paddingBottom: 42,
-    paddingTop: 9,
-  },
-  buttonAdd: {
     alignItems: "center",
     justifyContent: "center",
+
+    height: 240,
+    maxHeight: 240,
+    maxWidth: 342,
+
+    marginBottom: 8,
+
     backgroundColor: "#F6F6F6",
-    borderRadius: 20,
-    width: 70,
-    height: 40,
+    border: "1px solid #E8E8E8",
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  camera: {
+    alignItems: "center",
+    justifyContent: "center",
+
+    height: "100%",
+    width: "100%",
+  },
+
+  bgImage: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    // zIndex: 99,
+    flex: 1,
+    height: 240,
+    maxHeight: 240,
+    width: "100%",
+    maxWidth: 342,
+    backgroundColor: "#000",
   },
   loadBtn: {
     alignItems: "center",
@@ -323,11 +343,89 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
     borderRadius: 50,
   },
-  camera: {
-    alignItems: "center",
-    justifyContent: "center",
+  loadBtnContent: {},
+  loadWrapperText: {
+    fontFamily: "Roboto",
+    fontStyle: "normal",
+    fontWeight: 400,
+    fontSize: 16,
+    lineHeight: 19,
 
-    height: "100%",
-    width: "100%",
+    color: "#BDBDBD",
+  },
+
+  locationInputWrapper: {
+    position: "relative",
+    height: 50,
+    paddingVertical: 16,
+
+    alignContent: "center",
+
+    color: "#212121",
+    backgroundColor: "#ffffff",
+
+    borderBottomWidth: 1,
+    borderColor: "#e8e8e8",
+  },
+  input: {
+    height: 50,
+    fontSize: 16,
+    paddingVertical: 16,
+    marginBottom: 16,
+
+    color: "#212121",
+    backgroundColor: "#ffffff",
+
+    borderBottomWidth: 1,
+    borderColor: "#e8e8e8",
+  },
+  inputLocation: {
+    fontSize: 16,
+
+    marginLeft: 28,
+
+    color: "#212121",
+    backgroundColor: "#ffffff",
+  },
+  btnLoaction: {
+    position: "absolute",
+    left: 0,
+    bottom: 16,
+    alignSelf: "center",
+
+    backgroundColor: "transparent",
+  },
+  btn: {
+    marginTop: 32,
+    marginBottom: 120,
+
+    paddingVertical: 16,
+
+    backgroundColor: "#f6f6f6",
+    borderRadius: 100,
+  },
+  btnText: {
+    fontFamily: "Roboto",
+    fontStyle: "normal",
+    fontWeight: 400,
+    fontSize: 16,
+
+    textAlign: "center",
+
+    color: "#bdbdbd",
+  },
+  btnTrash: {
+    alignSelf: "center",
+    alignItems: "center",
+
+    width: 70,
+    height: 40,
+
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+
+    backgroundColor: "#f6f6f6",
+    borderRadius: 20,
+    // backgroundColor: props.accessibilityState.selected ? '#f6f6f6' : '#ff6c00',
   },
 });
