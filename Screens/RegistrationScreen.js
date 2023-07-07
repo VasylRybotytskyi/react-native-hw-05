@@ -129,9 +129,7 @@ const RegistrationScreen = ({ navigation }) => {
             </TouchableOpacity>
             <View style={styles.registerContainer}>
               <Text style={styles.registerText}>Вже є акаунт?</Text>
-              <TouchableOpacity
-                onPress={() => navigation.navigate("LoginScreen")}
-              >
+              <TouchableOpacity onPress={() => navigation.navigate("Login")}>
                 <Text style={[styles.registerText, styles.registerLink]}>
                   Увійти
                 </Text>
